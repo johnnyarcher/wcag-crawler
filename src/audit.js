@@ -1,5 +1,5 @@
-import { AxePuppeteer } from '@axe-core/puppeteer'
-import puppeteer from 'puppeteer'
+const { AxePuppeteer } = require('@axe-core/puppeteer')
+const puppeteer = require('puppeteer')
 
 const passCounts = {
   critical: 0,
@@ -13,9 +13,11 @@ const summary = {
   violations: {}
 }
 
-export class Audit {
+const config = {}
+
+module.exports = class Audit {
   constructor (params) {
-    this.axeConfig = config
+    this.axeConfig = params.config || config
     this.pages = params.pages
     this.auditedPages = []
     this.violations = []
@@ -26,7 +28,6 @@ export class Audit {
     this.passCounts = passCounts
     this.summary = summary
   }
-
 
   /**
    * Boots new pupeteer browser
