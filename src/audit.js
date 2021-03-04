@@ -1,5 +1,6 @@
 const { AxePuppeteer } = require('@axe-core/puppeteer')
 const puppeteer = require('puppeteer')
+const userImpact = require('./user-impact')
 
 const passCounts = {
   critical: 0,
@@ -13,11 +14,15 @@ const summary = {
   violations: {}
 }
 
-const config = {}
+const config = {
+  args: ['--no-sandbox', '--disable-gpu'],
+  ignoreHTTPSErrors: true,
+  defaultViewport: { width: 375, height: 667, isMobile: true }
+}
 
 module.exports = class Audit {
   constructor (params) {
-    this.axeConfig = params.config || config
+    this.config = params.config ? params.config : config
     this.pages = params.pages
     this.auditedPages = []
     this.violations = []
@@ -30,19 +35,11 @@ module.exports = class Audit {
   }
 
   /**
-   * Boots new pupeteer browser
+   * Boots new puppeteer browser
    * @memberof Audit
    */
    async bootBrowser () {
-    this.browser = await puppeteer.launch({
-      args: ['--no-sandbox', '--disable-gpu'],
-      ignoreHTTPSErrors: true,
-      defaultViewport: {
-        width: 375,
-        height: 667,
-        isMobile: true
-      }
-    })
+    this.browser = await puppeteer.launch(this.config)
   }
 
   /**
@@ -147,6 +144,11 @@ module.exports = class Audit {
     })
   }
 
+  /**
+   * 
+   * @param {Object} set 
+   * @param {String} objectKey 
+   */
   addSummary (set, objectKey) {
     if (!this.summary[objectKey][set.id]) {
       this.summary[objectKey][set.id] = 0
@@ -160,6 +162,9 @@ module.exports = class Audit {
     this.addPassCounts(auditResults.passes)
   }
 
+  /**
+   * @memberof Audit
+   */
   get results () {
     return {
       axeVersion: this.axeVersion,

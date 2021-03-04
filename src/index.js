@@ -7,21 +7,21 @@ const port = process.env.PORT || 8081
 
 app.use(json({ limit: '1000kb' }))
 
-app.use((req, res, next) => {
-  console.log(req.path, req.body)
-  next()
-})
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, res, next) => {
+    console.log(req.path, req.body)
+    next()
+  })
+}
 
 app.get('/', (req, res) => res.status(200).send('I\'m Listening.'))
 
 app.post('/', async (req, res) => {
   try {
-    const audit = new Audit()
-    await audit.run(req.body)
-    const result = audit.results()
-    res.json(result)
+    const audit = new Audit(req.body)
+    await audit.run()
+    res.json(audit.results)
   } catch (error) {
-    console.error(error)
     res.send(error)
   }
 })
