@@ -75,7 +75,7 @@ module.exports = class Audit {
   }
 
   /**
-   * Closes the Puppeteer page
+   * Closes the Puppeteer page/tab
    * @memberof Audit
    */
   closeBrowser () {
@@ -97,22 +97,18 @@ module.exports = class Audit {
     await this.bootBrowser()
     await this.newPage()
     await this.page.setBypassCSP(true)
-    // console.time('Audit Duration')
     while (this.pages.length > 0) {
       const url = this.pages.pop()
-      // console.log(`Navigating to ${url}`)
       await this.changeUrl(url)
-      // console.log(`Auditing ${url}`)
       await this.auditPage()
       this.auditedPages.push(url)
     }
     await this.closePage()
     await this.closeBrowser()
-    // console.timeEnd('Audit Duration')
   }
 
   /**
-   * Audits the current pupeteer page and adds the results to the class
+   * Audits the current Puppeteer page and adds the results to the class
    * @memberof Audit
    */
   async auditPage () {
@@ -186,6 +182,7 @@ module.exports = class Audit {
   }
 
   /**
+   * @param {Object} auditResults
    * @memberof Audit
    */
   set results (auditResults) {
