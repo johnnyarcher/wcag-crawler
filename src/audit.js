@@ -17,7 +17,10 @@ const summary = {
 const config = {
   args: ['--no-sandbox', '--disable-gpu'],
   ignoreHTTPSErrors: true,
-  defaultViewport: { width: 375, height: 667, isMobile: true }
+  defaultViewport: { width: 375, height: 667, isMobile: true },
+  timeout: 300000,
+  pause: 4000,
+  waitUntil: 'networkidle0'
 }
 
 module.exports = class Audit {
@@ -35,7 +38,7 @@ module.exports = class Audit {
   }
 
   /**
-   * Boots new puppeteer browser
+   * Boots new Puppeteer browser
    * @memberof Audit
    */
    async bootBrowser () {
@@ -43,7 +46,7 @@ module.exports = class Audit {
   }
 
   /**
-   * Opens a new page in the pupeteer browser
+   * Opens a new page in the Puppeteer browser
    * @memberof Audit
    */
   async newPage () {
@@ -54,16 +57,17 @@ module.exports = class Audit {
   }
 
   /**
-   * Changes the url of the pupeteer page
+   * Changes the url of the Puppeteer page
    * @param {*} url
    * @memberof Audit
    */
   changeUrl (url) {
-    return this.page.goto(url, { timeout: 300000, waitUntil: 'networkidle0' })
+    const { timeout, waitUntil } = this.config
+    return this.page.goto(url, { timeout, waitUntil })
   }
 
   /**
-   * Closes the puppeteer browser
+   * Closes the Puppeteer browser
    * @memberof Audit
    */
   closePage () {
@@ -71,29 +75,40 @@ module.exports = class Audit {
   }
 
   /**
-   * Closes the pupeteer page
+   * Closes the Puppeteer page
    * @memberof Audit
    */
   closeBrowser () {
     return this.browser.close()
   }
 
+  /**
+   * For inserting a delay to help with timing events
+   * @memberof Audit
+   * @param {Number} time ms
+   */
+  delay (time) {
+    return new Promise((resolve) => {
+      setTimeout(resolve, time)
+    })
+  }
+
   async run () {
     await this.bootBrowser()
     await this.newPage()
     await this.page.setBypassCSP(true)
-    console.time('Audit Duration')
+    // console.time('Audit Duration')
     while (this.pages.length > 0) {
       const url = this.pages.pop()
-      console.log(`Navigating to ${url}`)
+      // console.log(`Navigating to ${url}`)
       await this.changeUrl(url)
-      console.log(`Auditing ${url}`)
+      // console.log(`Auditing ${url}`)
       await this.auditPage()
       this.auditedPages.push(url)
     }
     await this.closePage()
     await this.closeBrowser()
-    console.timeEnd('Audit Duration')
+    // console.timeEnd('Audit Duration')
   }
 
   /**
@@ -102,6 +117,7 @@ module.exports = class Audit {
    */
   async auditPage () {
     try {
+      await this.delay(this.config.pause)
       this.results = await new AxePuppeteer(this.page)
         .options({ iframes: false })
         .withTags(this.setTags())
@@ -111,12 +127,21 @@ module.exports = class Audit {
     }
   }
 
+  /**
+   * @memberof Audit
+   * @returns 
+   */
   setTags () {
     return this.includeWcag21aa === true
       ? ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice']
       : ['wcag2a', 'wcag21a', 'best-practice']
   }
 
+  /**
+   * @memberof Audit
+   * @param {Array} violations 
+   * @param {String} page 
+   */
   addViolations (violations, page) {
     violations.forEach((violation) => {
       const { id, description } = violation
@@ -135,6 +160,10 @@ module.exports = class Audit {
     })
   }
 
+  /**
+   * @memberof Audit
+   * @param {Array} passes 
+   */
   addPassCounts (passes) {
     passes.forEach((pass) => {
       if (userImpact[pass.id]) {
@@ -145,7 +174,7 @@ module.exports = class Audit {
   }
 
   /**
-   * 
+   * @memberof Audit
    * @param {Object} set 
    * @param {String} objectKey 
    */
@@ -156,6 +185,9 @@ module.exports = class Audit {
     this.summary[objectKey][set.id]++
   }
 
+  /**
+   * @memberof Audit
+   */
   set results (auditResults) {
     this.axeVersion = auditResults.testEngine.version
     this.addViolations(auditResults.violations, auditResults.url)
