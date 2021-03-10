@@ -1,4 +1,5 @@
 const { AxePuppeteer } = require('@axe-core/puppeteer')
+const axios = require('axios')
 const puppeteer = require('puppeteer')
 const userImpact = require('./user-impact')
 
@@ -35,6 +36,9 @@ module.exports = class Audit {
     this.includeWcag21aa = params.includeWcag21aa
     this.passCounts = passCounts
     this.summary = summary
+    this.clientURN = params.clientURN
+    this.locationUrn = params.locationUrn
+    this.id = params.id
   }
 
   /**
@@ -94,14 +98,19 @@ module.exports = class Audit {
   }
 
   async run () {
-    await this.bootBrowser()
-    await this.newPage()
-    await this.page.setBypassCSP(true)
-    while (this.pages.length > 0) {
-      const url = this.pages.pop()
-      await this.changeUrl(url)
-      await this.auditPage()
-      this.auditedPages.push(url)
+    try {
+      await this.bootBrowser()
+      await this.newPage()
+      await this.page.setBypassCSP(true)
+      while (this.pages.length > 0) {
+        const url = this.pages.pop()
+        await this.changeUrl(url)
+        console.log(`AUDIT ${url}`)
+        await this.auditPage()
+        this.auditedPages.push(url)
+      }
+    } catch (error) {
+      throw new Error(error, this)
     }
     await this.closePage()
     await this.closeBrowser()
@@ -179,6 +188,27 @@ module.exports = class Audit {
       this.summary[objectKey][set.id] = 0
     }
     this.summary[objectKey][set.id]++
+  }
+
+  /**
+   * Sends new network request back to audit requester
+   * @param {Object} results 
+   */
+  async send (host, results = this.results) {
+    try {
+      await axios.post(`${host}/api/v1/wcag/intake`, {
+        results,
+        id: this.id,
+        clientURN: this.clientURN,
+        locationUrn: this.locationUrn
+      })
+    } catch (error) {
+      console.error(`ERROR Uable to post successfully: ${error}`)
+      axios.post(`${host}/api/v1/wcag/intake`, {
+        error,
+        id
+      }).catch(error => console.error(`ERROR Unable to post error: ${error}`))
+    }
   }
 
   /**
