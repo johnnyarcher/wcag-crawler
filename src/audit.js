@@ -204,7 +204,7 @@ module.exports = class Audit {
       })
     } catch (error) {
       console.error(`ERROR Uable to post successfully: ${error}`)
-      axios.post('http://localhost:7564/api/v1/wcag/intake', {
+      axios.post(`${host}/api/v1/wcag/intake`, {
         error,
         id
       }).catch(error => console.error(`ERROR Unable to post error: ${error}`))
