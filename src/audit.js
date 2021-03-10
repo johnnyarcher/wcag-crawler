@@ -196,6 +196,7 @@ module.exports = class Audit {
    */
   async send (host, results = this.results) {
     try {
+      console.log(`AUDIT ${host}`)
       await axios.post(`${host}/api/v1/wcag/intake`, {
         results,
         id: this.id,

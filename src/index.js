@@ -20,7 +20,9 @@ app.post('/', async (req, res) => {
   try {
     const client = process.env.NODE_ENV !== 'production'
       ? `${req.protocol}://${req.hostname}:7564`
-      : `${req.protocol}://${req.hostname}`
+      : process.env.TARGET
+        ? `${TARGET}`
+        : `${req.protocol}://${req.hostname}`
     const audit = new Audit(req.body)
     res.sendStatus(201)
     await audit.run()
