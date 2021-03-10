@@ -1,7 +1,7 @@
 {
   "name": "wcag-crawler",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.0.1",
+  "description": "A Cloud Function version of G5's Wrapper for Axe-Core",
   "main": "src/index.js",
   "scripts": {
     "start": "NODE_ENV=production node src/index.js",
