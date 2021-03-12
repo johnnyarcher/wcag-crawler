@@ -26,4 +26,27 @@ app.post('/', async (req, res) => {
   }
 })
 
+app.post('/sub', async (req, res) => {
+  if (!req.body) {
+    const msg = 'no Pub/Sub message received'
+    console.error(`error: ${msg}`)
+    res.status(400).send(`Bad Request: ${msg}`)
+    return
+  }
+  if (!req.body.message) {
+    const msg = 'invalid Pub/Sub message format'
+    console.error(`error: ${msg}`)
+    res.status(400).send(`Bad Request: ${msg}`)
+    return
+  }
+
+  const pubSubMessage = req.body.message
+  const body = pubSubMessage.data
+    ? Buffer.from(pubSubMessage.data, 'base64').toString().trim()
+    : {}
+  const audit = new Audit(body)
+  await audit.run()
+  res.json(audit.results)
+})
+
 app.listen(port, () => console.log(`:${port} I'm Listening.`))
