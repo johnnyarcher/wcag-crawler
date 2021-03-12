@@ -16,29 +16,13 @@ if (process.env.NODE_ENV !== 'production') {
 
 app.get('/', (req, res) => res.status(200).send('I\'m Listening.'))
 
-app.post('/direct', async (req, res) => {
+app.post('/', async (req, res) => {
   try {
     const audit = new Audit(req.body)
     await audit.run()
     res.json(audit.results)
   } catch (error) {
     res.sendStatus(503).json(error)
-  }
-})
-
-app.post('/', async (req, res) => {
-  try {
-    const client = process.env.NODE_ENV !== 'production'
-      ? `${req.protocol}://${req.hostname}:7564`
-      : process.env.TARGET
-        ? `${TARGET}`
-        : `${req.protocol}://${req.hostname}`
-    const audit = new Audit(req.body)
-    res.sendStatus(201)
-    await audit.run()
-    await audit.send(client, audit.results)
-  } catch (error) {
-    res.send(error)
   }
 })
 
