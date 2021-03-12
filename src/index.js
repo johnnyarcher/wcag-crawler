@@ -42,8 +42,9 @@ app.post('/sub', async (req, res) => {
 
   const pubSubMessage = req.body.message
   const body = pubSubMessage.data
-    ? Buffer.from(pubSubMessage.data, 'base64').toString().trim()
+    ? Buffer.from(pubSubMessage.data, 'base64').toJSON()
     : {}
+  console.log(body)
   const audit = new Audit(body)
   await audit.run()
   res.json(audit.results)
