@@ -9,20 +9,31 @@ app.use(json({ limit: '1000kb' }))
 
 if (process.env.NODE_ENV !== 'production') {
   app.use((req, res, next) => {
-    console.log(`${req.protocol}://${req.hostname}`, req.body)
+    console.log(`${req.protocol}://${req.hostname}`)
+    console.log(req.body)
     next()
   })
 }
 
 app.get('/', (req, res) => res.status(200).send('I\'m Listening.'))
 
-app.post('/', async (req, res) => {
+app.post('/direct', async (req, res) => {
   try {
     const audit = new Audit(req.body)
     await audit.run()
     res.json(audit.results)
   } catch (error) {
     res.sendStatus(503).json(error)
+  }
+})
+
+app.post('/', (req, res) => {
+  try {
+    const audit = new Audit(req.body)
+    res.sendStatus(201)
+    audit.run(true)
+  } catch (error) {
+    res.status(503).json(error)
   }
 })
 

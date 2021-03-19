@@ -1,7 +1,41 @@
 const { AxePuppeteer } = require('@axe-core/puppeteer')
 const axios = require('axios')
 const puppeteer = require('puppeteer')
+const colors = require('colors')
 const userImpact = require('./user-impact')
+
+const blockedResourceTypes = [
+  // 'image',
+  // 'media',
+  // 'font',
+  'texttrack',
+  'object',
+  'beacon',
+  'csp_report',
+  'imageset',
+]
+
+const skippedResources = [
+  'quantserve',
+  'adzerk',
+  'doubleclick',
+  'adition',
+  'exelator',
+  'sharethrough',
+  'cdn.api.twitter',
+  'google-analytics',
+  'googletagmanager',
+  'google',
+  'fontawesome',
+  'facebook',
+  'analytics',
+  'optimizely',
+  'clicktale',
+  'mixpanel',
+  'zedo',
+  'clicksor',
+  'tiqcdn',
+]
 
 const passCounts = {
   critical: 0,
@@ -16,12 +50,19 @@ const summary = {
 }
 
 const config = {
-  args: ['--no-sandbox', '--disable-gpu'],
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-accelerated-2d-canvas',
+    '--disable-gpu',
+    '--window-size=1920x1080'
+  ],
   ignoreHTTPSErrors: true,
   defaultViewport: { width: 375, height: 667, isMobile: true },
   timeout: 300000,
   pause: 4000,
-  waitUntil: 'networkidle0'
+  waitUntil: 'networkidle2'
 }
 
 module.exports = class Audit {
@@ -29,6 +70,7 @@ module.exports = class Audit {
     this.config = params.config ? params.config : config
     this.pages = params.pages
     this.auditedPages = []
+    this.skippedPages = []
     this.violations = []
     this.axeVersion = null
     this.page = null
@@ -56,18 +98,41 @@ module.exports = class Audit {
   async newPage () {
     if (this.browser) {
       this.page = await this.browser.newPage()
-      this.page.on('error', err => console.log({ err, page: this.page }))
+      this.page.on('error', (err) => {
+        throw new Error(err)
+      })
+      this.page.on('request', (request) => {
+        const requestUrl = request._url.split('?')[0].split('#')[0]
+        if (
+          blockedResourceTypes.indexOf(request.resourceType()) !== -1 ||
+          skippedResources.some(resource => requestUrl.indexOf(resource) !== -1)
+        ) {
+          if (process.env.NODE_ENV !== 'production') console.log(`BLOCKED ${requestUrl}`.red.bold)
+          request.abort()
+        } else {
+          request.continue()
+        }
+      })
     }
   }
 
   /**
    * Changes the url of the Puppeteer page
-   * @param {*} url
+   * @param {String} url
    * @memberof Audit
    */
-  changeUrl (url) {
-    const { timeout, waitUntil } = this.config
-    return this.page.goto(url, { timeout, waitUntil })
+  async changeUrl (url) {
+    try {
+      const { timeout, waitUntil } = this.config
+      const response = await this.page.goto(url, { timeout, waitUntil })
+      if (response._status < 400) {
+        await this.waitForPage(3000)
+      }
+    } catch (error) {
+      console.error(url, error)
+      this.skippedPages.push(url)
+      return
+    }
   }
 
   /**
@@ -91,21 +156,25 @@ module.exports = class Audit {
    * @memberof Audit
    * @param {Number} time ms
    */
-  delay (time) {
-    return new Promise((resolve) => {
-      setTimeout(resolve, time)
-    })
+  waitForPage (time = 1000) {
+    return this.page.waitForTimeout(time)
   }
 
-  async run () {
+  /**
+   * Orchestrates the whole thing.
+   * @param {Boolean} send 
+   */
+  async run (send = false) {
     try {
       await this.bootBrowser()
       await this.newPage()
       await this.page.setBypassCSP(true)
+      await this.page.setRequestInterception(true)
       while (this.pages.length > 0) {
         const url = this.pages.pop()
         await this.changeUrl(url)
         console.log(`AUDIT ${url}`)
+        await this.waitForPage(2000)
         await this.auditPage()
         this.auditedPages.push(url)
       }
@@ -114,6 +183,10 @@ module.exports = class Audit {
     }
     await this.closePage()
     await this.closeBrowser()
+    
+    if (send) {
+      this.send(process.env.TARGET, this.results)
+    }
   }
 
   /**
@@ -122,7 +195,7 @@ module.exports = class Audit {
    */
   async auditPage () {
     try {
-      await this.delay(this.config.pause)
+      await this.waitForPage(this.config.pause)
       this.results = await new AxePuppeteer(this.page)
         .options({ iframes: false })
         .withTags(this.setTags())
@@ -196,7 +269,7 @@ module.exports = class Audit {
    */
   async send (host, results = this.results) {
     try {
-      console.log(`AUDIT ${host}`)
+      console.log(`SEND ${host}`)
       await axios.post(`${host}/api/v1/wcag/intake`, {
         results,
         id: this.id,
@@ -231,6 +304,7 @@ module.exports = class Audit {
       violations: this.violations,
       passCounts: this.passCounts,
       auditedPages: this.auditedPages,
+      skippedPages: this.skippedPages,
       summary: this.summary
     }
   }
