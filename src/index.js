@@ -30,8 +30,8 @@ app.post('/direct', async (req, res) => {
 app.post('/', (req, res) => {
   try {
     const audit = new Audit(req.body)
-    res.sendStatus(201)
     audit.run(true)
+    res.sendStatus(201)
   } catch (error) {
     res.status(503).json(error)
   }
