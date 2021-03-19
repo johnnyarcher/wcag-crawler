@@ -1,18 +1,14 @@
 const { AxePuppeteer } = require('@axe-core/puppeteer')
 const axios = require('axios')
 const puppeteer = require('puppeteer')
-const colors = require('colors')
+if (process.env.NODE_ENV !== 'production') require('colors')
 const userImpact = require('./user-impact')
 
 const blockedResourceTypes = [
-  // 'image',
-  // 'media',
-  // 'font',
   'texttrack',
   'object',
   'beacon',
-  'csp_report',
-  'imageset',
+  'csp_report'
 ]
 
 const skippedResources = [
@@ -52,15 +48,11 @@ const summary = {
 const config = {
   args: [
     '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage',
-    '--disable-accelerated-2d-canvas',
-    '--disable-gpu',
-    '--window-size=1920x1080'
+    '--disable-gpu'
   ],
   ignoreHTTPSErrors: true,
   defaultViewport: { width: 375, height: 667, isMobile: true },
-  timeout: 300000,
+  timeout: 100000,
   pause: 4000,
   waitUntil: 'networkidle2'
 }
@@ -173,7 +165,7 @@ module.exports = class Audit {
       while (this.pages.length > 0) {
         const url = this.pages.pop()
         await this.changeUrl(url)
-        console.log(`AUDIT ${url}`)
+        console.log(`AUDIT ${url}`.blue.bold)
         await this.waitForPage(2000)
         await this.auditPage()
         this.auditedPages.push(url)
@@ -277,10 +269,10 @@ module.exports = class Audit {
         locationUrn: this.locationUrn
       })
     } catch (error) {
-      console.error(`ERROR Uable to post successfully: ${error}`)
+      console.error(`ERROR Unable to post successfully: ${error}`)
       axios.post(`${host}/api/v1/wcag/intake`, {
         error,
-        id
+        id: this.id
       }).catch(error => console.error(`ERROR Unable to post error: ${error}`))
     }
   }
