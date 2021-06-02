@@ -1,11 +1,10 @@
 require('dotenv').config()
 const express = require('express')
-const { json } = require('body-parser')
 const Audit = require('./audit')
 const app = express()
 const port = process.env.PORT || 8081
 
-app.use(json({ limit: '1000kb' }))
+app.use(express.json({ limit: '1000kb' }))
 
 if (process.env.NODE_ENV !== 'production') {
   app.use((req, res, next) => {
