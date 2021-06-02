@@ -31,6 +31,9 @@ const skippedResources = [
   'zedo',
   'clicksor',
   'tiqcdn',
+  'show.tours',
+  'boomchatweb',
+  'tourmkr'
 ]
 
 const passCounts = {
@@ -190,6 +193,7 @@ module.exports = class Audit {
       await this.waitForPage(this.config.pause)
       this.results = await new AxePuppeteer(this.page)
         .options({ iframes: false })
+        .disableFrame('iframe')
         .withTags(this.setTags())
         .analyze()
     } catch (error) {
