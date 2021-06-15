@@ -94,7 +94,7 @@ module.exports = class Audit {
     if (this.browser) {
       this.page = await this.browser.newPage()
       this.page.on('error', (err) => {
-        throw new Error(err)
+        throw new Error('Error navigating to a new page.', err)
       })
       this.page.on('request', (request) => {
         const requestUrl = request._url.split('?')[0].split('#')[0]
@@ -178,6 +178,7 @@ module.exports = class Audit {
     }
     await this.closePage()
     await this.closeBrowser()
+    console.log('FINISHED'.green.bold)
     
     if (send) {
       this.send(process.env.TARGET, this.results)
