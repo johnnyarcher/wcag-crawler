@@ -43,11 +43,6 @@ const passCounts = {
   minor: 0
 }
 
-const summary = {
-  passes: {},
-  violations: {}
-}
-
 const config = {
   args: [
     '--no-sandbox',
@@ -72,10 +67,14 @@ module.exports = class Audit {
     this.browser = null
     this.includeWcag21aa = params.includeWcag21aa
     this.passCounts = passCounts
-    this.summary = summary
+    this.summary = {
+      passes: {},
+      violations: {}
+    }
     this.clientURN = params.clientURN
     this.locationUrn = params.locationUrn
     this.id = params.id
+    this.webhookUrl = params.webhookUrl
   }
 
   /**
@@ -159,7 +158,7 @@ module.exports = class Audit {
    * Orchestrates the whole thing.
    * @param {Boolean} send 
    */
-  async run (send = false) {
+  async run () {
     try {
       await this.bootBrowser()
       await this.newPage()
@@ -180,8 +179,8 @@ module.exports = class Audit {
     await this.closeBrowser()
     console.log('FINISHED'.green.bold)
     
-    if (send) {
-      this.send(process.env.TARGET, this.results)
+    if (this.webhookUrl) {
+      this.send()
     }
   }
 
@@ -264,10 +263,10 @@ module.exports = class Audit {
    * Sends new network request back to audit requester
    * @param {Object} results 
    */
-  async send (host, results = this.results) {
+  async send (results = this.results) {
     try {
-      console.log(`SEND ${host}`)
-      await axios.post(`${host}/api/v1/wcag/intake`, {
+      console.log(`SEND ${this.webhookUrl}`)
+      await axios.post(this.webhookUrl, {
         results,
         id: this.id,
         clientURN: this.clientURN,
@@ -275,7 +274,7 @@ module.exports = class Audit {
       })
     } catch (error) {
       console.error(`ERROR Unable to post successfully: ${error}`)
-      axios.post(`${host}/api/v1/wcag/intake`, {
+      axios.post(this.webhookUrl, {
         error,
         id: this.id
       }).catch(error => console.error(`ERROR Unable to post error: ${error}`))
