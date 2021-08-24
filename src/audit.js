@@ -266,8 +266,8 @@ module.exports = class Audit {
   async send (results = this.results) {
     try {
       console.log(`SEND ${this.webhookUrl}`)
-      await axios.post(this.webhookUrl, {
-        results,
+      await axios.put(this.webhookUrl, {
+        ...results,
         id: this.id,
         clientURN: this.clientURN,
         locationUrn: this.locationUrn
