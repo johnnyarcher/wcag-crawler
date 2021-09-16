@@ -1,23 +1,35 @@
 {
   "name": "wcag-crawler",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "A Cloud Function version of G5's Wrapper for Axe-Core",
   "main": "src/index.js",
+  "config": {
+    "imageRepo": "gcr.io/g5-images/accessibility-audit",
+    "imageName": "accessibility-audit"
+  },
   "scripts": {
     "start": "NODE_ENV=production node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "docker:build": "docker build -t $npm_package_config_imageName .",
+    "docker:run": "docker run -p 8085:8085 $npm_package_config_imageName",
+    "docker:tag:prime": "branch=$(git rev-parse --symbolic-full-name --abbrev-ref HEAD); sha=$(git rev-parse $branch); docker tag $npm_package_config_imageName $npm_package_config_imageRepo:$branch-$sha-prime",
+    "docker:tag:staging": "branch=$(git rev-parse --symbolic-full-name --abbrev-ref HEAD); sha=$(git rev-parse $branch); docker tag $npm_package_config_imageName $npm_package_config_imageRepo:$branch",
+    "docker:tag:prod": " docker tag $npm_package_config_imageName $npm_package_config_imageRepo:$npm_package_version",
+    "docker:push:prod": "docker push $npm_package_config_imageRepo:$npm_package_version",
+    "docker:push:staging": "branch=$(git rev-parse --symbolic-full-name --abbrev-ref HEAD); sha=$(git rev-parse $branch); docker push $npm_package_config_imageRepo:$branch",
+    "docker:push:prime": "branch=$(git rev-parse --symbolic-full-name --abbrev-ref HEAD); sha=$(git rev-parse $branch); docker push $npm_package_config_imageRepo:$branch-prime"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@axe-core/puppeteer": "^4.2.1",
+    "@axe-core/puppeteer": "^4.2.2",
     "axios": "^0.21.1",
     "colors": "^1.4.0",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
-    "puppeteer": "^5.5.0"
+    "puppeteer": "^10.2.0"
   },
   "devDependencies": {
     "jest": "^26.6.3",
