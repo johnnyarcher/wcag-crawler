@@ -99,6 +99,9 @@ module.exports = class Audit {
     try {
       await this.bootBrowser()
       const axeBuilder = await loadPage(this.browser, this.url)
+      if (this.config.pause) {
+        await this.sleep(this.config.pause)
+      }
       this.results = await axeBuilder
         .options({ iframes: false })
         .disableFrame('iframe')
@@ -192,5 +195,15 @@ module.exports = class Audit {
       skippedPages: this.skippedPages,
       summary: this.summary
     }
+  }
+
+  /**
+   *
+   *
+   * @param {NUMBER} ms
+   * @returns
+   */
+  sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
